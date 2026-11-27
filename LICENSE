@@ -1,0 +1,64 @@
+MIT License
+
+Copyright (c) 2026 MELODY-TOYS
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+Third-Party & Patch License Notices:
+
+1. Scope of MIT License above:
+   The MIT License above applies to the original recipe scripts (`scripts/`),
+   documentation (`README.md`, `AGENTS.md`), and MELODY-TOYS's original
+   incremental modifications in `patches/02-hy4-flash-g4.patch`.
+
+2. Upstream inference engine (`ggml-org/llama.cpp`):
+   Built at runtime from https://github.com/ggml-org/llama.cpp
+   (commit `2cbca389f515df455412dafa07e2b1359cc72a6d`).
+   Copyright (c) The ggml authors — MIT License.
+
+3. `patches/01-angelslim-hy4-flash-spark.patch.gz`:
+   Derived from AngelSlim / Tencent's upstream patch
+   https://huggingface.co/AngelSlim/Hy4-flash-GGUF/blob/main/patch/hy4-flash-spark.patch
+   and governed by the **Tencent Hy License, Version 1.0** — full license text
+   is included in this repository at `LICENSES/Tencent-Hy-License-1.0.txt`
+   (see also https://huggingface.co/AngelSlim/Hy4-flash-GGUF/blob/main/LICENSE).
+
+   Notice of modifications vs. upstream `hy4-flash-spark.patch` (per Section 4(b)
+   of Tencent Hy License, Version 1.0):
+   - Removed 3 files under `tests/dfly-server/` (`tests/dfly-server/README.md`,
+     `tests/dfly-server/run_dfly_init_tests.py`, and
+     `tests/dfly-server/run_dfly_server_tests.py`) that are unused by the
+     single-binary Colab G4 build;
+   - Re-emitted git diff `index` headers in standard short-hash format;
+   - All remaining 73 patched files are unmodified relative to upstream.
+
+4. Combined build & derivative works (`patches/02-hy4-flash-g4.patch`):
+   `patches/02-hy4-flash-g4.patch` modifies both `ggml-org/llama.cpp` (MIT) and
+   files introduced by `01-angelslim-hy4-flash-spark.patch.gz` (Tencent Hy
+   License, Version 1.0). Accordingly, any compiled binary or combined source
+   tree produced by applying both patches is subject to the terms of both the
+   MIT License and the Tencent Hy License, Version 1.0 (including Section 10
+   commercial terms for large-scale Model-as-a-Service offerings).
+
+5. Model weights (`AngelSlim/Hy4-flash-GGUF`):
+   Downloaded directly from Hugging Face at deployment time and governed by the
+   Tencent Hy License, Version 1.0 (`LICENSES/Tencent-Hy-License-1.0.txt`).
+   This repository does not redistribute any model weights.
