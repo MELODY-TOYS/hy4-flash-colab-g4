@@ -43,13 +43,10 @@ Stop and ask the user before proceeding when any of the following applies:
 
 ### Step 1: Place This Repository on the G4 Host
 
-Clone directly on the G4 runtime (while this repo is private, authenticate with a read-only GitHub PAT or upload/extract a tarball; keep `scripts/` and `patches/` as sibling directories):
+Clone directly on the G4 runtime (keep `scripts/` and `patches/` as sibling directories):
 
 ```bash
 git clone https://github.com/MELODY-TOYS/hy4-flash-colab-g4.git /content/hy4-flash-colab-g4
-# While private (use a short-lived read-only PAT, then strip it from .git/config):
-# git clone "https://${GITHUB_PAT}@github.com/MELODY-TOYS/hy4-flash-colab-g4.git" /content/hy4-flash-colab-g4
-# git -C /content/hy4-flash-colab-g4 remote set-url origin https://github.com/MELODY-TOYS/hy4-flash-colab-g4.git
 ```
 
 ### Step 2: Launch `scripts/bootstrap-hy4.sh` Detached in the Background

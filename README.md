@@ -76,13 +76,6 @@ flowchart LR
 
 在 [colab.research.google.com](https://colab.research.google.com) 将运行时硬件切换为 G4 GPU（或通过 `google-colab-cli` 等工具连接已有 G4 实例）。
 
-仓库设为 Private 期间，在 Colab 中克隆请使用只读、短期有效的 GitHub PAT，克隆后顺手清除写入 `.git/config` 的令牌（或直接将仓库打包上传解压至 `/content/hy4-flash-colab-g4`）；仓库公开后可直接匿名克隆：
-
-```bash
-git clone https://<GITHUB_PAT>@github.com/MELODY-TOYS/hy4-flash-colab-g4.git /content/hy4-flash-colab-g4
-git -C /content/hy4-flash-colab-g4 remote set-url origin https://github.com/MELODY-TOYS/hy4-flash-colab-g4.git
-```
-
 在 G4 终端或 Notebook 单元格中以 `setsid nohup` 后台启动部署脚本，并用 `>>` 追加日志。默认无需手动指定 `HY4_API_KEY`，脚本会自动生成随机密钥并持久化保存到 `/content/.hy4-g4/api_key`（权限 `0600`），重跑时自动复用。
 
 在 G4 Shell / SSH 终端中执行：
@@ -106,7 +99,6 @@ setsid nohup bash /content/hy4-flash-colab-g4/scripts/bootstrap-hy4.sh \
 %%bash
 set -euo pipefail
 REPO_URL="https://github.com/MELODY-TOYS/hy4-flash-colab-g4.git"
-# 私有仓库期间改为 REPO_URL="https://<GITHUB_PAT>@github.com/MELODY-TOYS/hy4-flash-colab-g4.git"，克隆后执行 git remote set-url 清除令牌
 
 if [ -d /content/hy4-flash-colab-g4/.git ]; then
   git -C /content/hy4-flash-colab-g4 pull --ff-only || true
