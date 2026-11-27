@@ -611,7 +611,7 @@ if [[ -s "${SERVER_LOG}" ]]; then
   mv -f "${SERVER_LOG}" "${SERVER_LOG}.prev" || true
 fi
 
-# Persist active API key (0600) and runtime config signature so subsequent cells/shells & verify.py can read it.
+# Persist active API key (0600) and runtime config signature so subsequent cells/shells can read it.
 if [[ -n "${API_KEY}" ]]; then
   write_secret_file "${API_KEY_FILE}" "${API_KEY}"
   if [[ "${AUTO_GENERATED_KEY}" == "1" ]]; then

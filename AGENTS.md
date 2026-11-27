@@ -1,8 +1,8 @@
 # AGENTS.md — Coding Agent Execution Guide for `hy4-flash-colab-g4`
 
-This repository is a **cloud-side Colab G4 Linux recipe** for deploying and verifying **Tencent Hy4-Flash** on a single **Google Colab G4** (`RTX PRO 6000 Blackwell Server Edition`, `sm_120a`, `97,887 MiB` VRAM, `176 GiB` DDR5 RAM) or an equivalent bare-metal Linux host.
+This repository is a **cloud-side Colab G4 Linux recipe** for deploying **Tencent Hy4-Flash** on a single **Google Colab G4** (`RTX PRO 6000 Blackwell Server Edition`, `sm_120a`, `97,887 MiB` VRAM, `176 GiB` DDR5 RAM) or an equivalent bare-metal Linux host.
 
-It intentionally does **not** prescribe host-OS-specific tunnel wrappers; the recipe brings up a verified server on remote `127.0.0.1:8000`, and you expose or forward `:8000` using whatever transport the user already uses.
+It intentionally does **not** prescribe host-OS-specific tunnel wrappers; the recipe brings up a ready `llama-server` on remote `127.0.0.1:8000`, and you expose or forward `:8000` using whatever transport the user already uses.
 
 Read this file end-to-end before executing any cloud command.
 
@@ -100,39 +100,22 @@ tail -n 20 /content/.hy4-g4/bootstrap.log
   - `download` (step 3): `5–10 min` (`153.16 GiB` via resumable HTTP 206; complete files skip automatically)
   - `start_server` (step 4): **`11–24 min`** (`~11 min` warm right after download, `~20–24 min` cold disk; `detail` updates every ~10s with `elapsed`, `health` HTTP code, and live `vram`)
 - **Stop polling when**:
-  - `status == "ready"` (and `stage == "ready"`) -> proceed to Step 4 verification.
+  - `status == "ready"` (and `stage == "ready"`) -> proceed to Step 4.
   - `status == "error"` -> stop immediately, inspect `detail`, `/content/.hy4-g4/bootstrap.log`, and `/tmp/hy4-server.log`, and fix root cause before re-running (if a previous server timed out wedged, re-run with `HY4_FORCE_RESTART=1`).
   - Stale-process check: if `status == "running"` and `updated_at` has not advanced for > 5 minutes AND `flock -n /content/.hy4-g4/bootstrap.lock true` succeeds, the previous bootstrap died with `SIGKILL`; inspect logs before restarting.
 
-### Step 4: Run Cloud-Side Log & End-to-End Verification
+### Step 4: Expose `:8000` (Optional) & Deliver Integration Block
 
-Verify **both** startup invariants and real API behavior on the G4 host before exposing to clients:
+`bootstrap-hy4.sh` already waits for `/health == 200`, checks the host RAM budget, and prints the `dfly_print_i:` startup line before writing `status == "ready"`. Optionally do a 1-second auth + model list smoke check if needed:
 
-1. **Startup log invariants** (must show `DFly attention = FA on`, `K_effective = 7`, `pairing = bound`, and zero fatal load/CUDA/OOM lines):
-   ```bash
-   grep -iE "dfly_print_i:|loaded multimodal|failed to load|CUDA error|out of memory" /tmp/hy4-server.log
-   ```
-2. **End-to-end API verification** (zero external Python dependencies; automatically loads `/content/.hy4-g4/api_key` if `--api-key` and `HY4_API_KEY` are omitted, runs every check independently, and prints full `[PASS]`/`[FAIL]`/`[SKIP]` summary):
-   ```bash
-   python3 /content/hy4-flash-colab-g4/scripts/verify.py \
-     --base-url http://127.0.0.1:8000 \
-     --api-key "$(cat /content/.hy4-g4/api_key)"
-   # Optional concurrency probe (reports both aggregate and per-slot average TPS):
-   python3 /content/hy4-flash-colab-g4/scripts/verify.py \
-     --base-url http://127.0.0.1:8000 \
-     --concurrency 8
-   ```
-3. **Post-verify DFly health counters** (must show `no_snapshot = 0, bad_snapshot = 0, bad_token = 0, compute_failed = 0`):
-   ```bash
-   grep -i "statistics.*draft-dfly" /tmp/hy4-server.log | tail -n 3
-   ```
-
-### Step 5: Expose `:8000` (Optional) & Deliver Integration Block
+```bash
+curl -fsS --noproxy '*' -H "Authorization: Bearer $(cat /content/.hy4-g4/api_key)" http://127.0.0.1:8000/v1/models
+```
 
 Expose remote `127.0.0.1:8000` via whichever transport the user prefers (SSH port forward, Tailscale, or detached `cloudflared` quick tunnel with streaming enabled to avoid Cloudflare's ~100s non-streaming origin timeout).
 
 Deliver a concise, copy-pasteable summary containing:
-- Verified Base URLs for OpenAI Chat (`/v1/chat/completions`), OpenAI Responses (`/v1/responses`), and Anthropic Messages (`/v1/messages`, base URL without `/v1`), plus `NO_PROXY` note if the user has a local proxy;
+- Base URLs for OpenAI Chat (`/v1/chat/completions`), OpenAI Responses (`/v1/responses`), and Anthropic Messages (`/v1/messages`, base URL without `/v1`), plus `NO_PROXY` note if the user has a local proxy;
 - Model ID (`hy4-flash`), active API Key (read from `/content/.hy4-g4/api_key`, never committed to git), context limit (`262144`), concurrency (`8`), vision status, and `K_effective`;
 - Client snippets for Claude Code / Codex (explicit `model_reasoning_effort = "high"` + `export HY4_API_KEY=...`) and the mandatory `reasoning_effort` warning (`no_think` / `low` / `high` / `max` only; never `medium` or `xhigh`).
 
@@ -143,10 +126,10 @@ Deliver a concise, copy-pasteable summary containing:
 | Variable | Default | Purpose & Safe Adjustment Range |
 | --- | --- | --- |
 | `HY4_API_KEY` | auto-generated (saved to `HY4_API_KEY_FILE`) | Bearer / `x-api-key` secret passed via `LLAMA_API_KEY` env var. Mandatory for non-loopback `HY4_HOST` or public tunnels. |
-| `HY4_API_KEY_FILE` | `/content/.hy4-g4/api_key` | Mode `0600` file persisting the active API key across shells/cells (`verify.py` reads this automatically). |
+| `HY4_API_KEY_FILE` | `/content/.hy4-g4/api_key` | Mode `0600` file persisting the active API key across shells/cells. |
 | `HF_TOKEN` | `""` | Optional Hugging Face token to avoid anonymous download rate limits. Never set a placeholder value. |
 | `HY4_DFLY_N_MAX` | `7` | DFly speculative draft tokens per step (`1..7`; draft `block_size=8`). `7` (`W=8`) hits the Blackwell `NVFP4 MMVQ` fast-path cap. |
-| `HY4_ENABLE_VISION` | `1` | Set `0` to skip `mmproj-Hy4-flash-bf16.gguf` (`0.97 GiB`) and disable image input (`verify.py` auto-skips vision checks). |
+| `HY4_ENABLE_VISION` | `1` | Set `0` to skip `mmproj-Hy4-flash-bf16.gguf` (`0.97 GiB`) and disable image input. |
 | `HY4_MMPROJ_OFFLOAD` | `0` | Keep `0` (`--no-mmproj-offload`) on 96 GiB G4 so vision does not steal VRAM from the KV pool. |
 | `HY4_FORCE_RESTART` | `0` | Default `0` keeps `bootstrap-hy4.sh` idempotent (and attaches to an already-loading managed server). Set `1` to stop managed server and relaunch. |
 | `HY4_PARALLEL` | `8` | Concurrent slot count (`-np`). Keep `<= 8` on 96 GiB VRAM. |
@@ -186,14 +169,12 @@ Deliver a concise, copy-pasteable summary containing:
 - **Decode speed drops to `~10 t/s` with `0%` GPU util and high `pgmajfault/s`**:
   - Cause: Server was launched without `--load-mode none --lazy-mode off` (mmap Engram thrashing).
   - Fix: Always launch via `scripts/bootstrap-hy4.sh`.
-- **`Permission denied` when running manually built test binaries in `/dev/shm`**:
+- **`Permission denied` when executing binaries placed in `/dev/shm`**:
   - Cause: Colab mounts `/dev/shm` with `noexec`.
-  - Fix: Copy test binaries (e.g. `test-dfly`) to `/tmp/` and `chmod +x` before running.
+  - Fix: `bootstrap-hy4.sh` installs `llama-server` to `/content/hy4-bin/`; if running any custom binary built in `/dev/shm`, copy it to `/tmp/` or `/content/` first.
 - **`HTTP 429 Already-active SSH session` when using `colab ssh`**:
   - Cause: Multiple concurrent `colab ssh` processes targeting the same Colab runtime.
   - Fix: Reuse a single SSH session / control socket instead of spawning parallel `colab ssh` commands.
-- **Running CUDA unit tests for patch verification**:
-  - Configure with `-DLLAMA_BUILD_TESTS=ON`, build `--target test-dfly`, copy to `/tmp/test-dfly`, and run `CUDA_VISIBLE_DEVICES=0 /tmp/test-dfly "hy4_g4_extensions.*"`. Expect `HY4_dfly_capture_pull_rows_CUDA0` and `HY4_dfly_flash_attn_576_CUDA0` to pass.
 
 ---
 
